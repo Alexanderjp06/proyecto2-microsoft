@@ -25,7 +25,13 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: 4. Ejecutar Extracción
-      run: time python src/extract.py
+      run: |
+        echo " [4.1] Iniciando extracción..."
+        python -u src/extract.py
+        echo " [4.2] Extracción finalizada."
 
     - name: 5. Ejecutar Transformación
-      run: time python src/transform.py
+      run: |
+        echo " [5.1] Iniciando transformación..."
+        python -u src/transform.py
+        echo " [5.2] Transformación finalizada."
