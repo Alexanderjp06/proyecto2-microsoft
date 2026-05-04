@@ -47,3 +47,28 @@ jobs:
 
     - name: 4. Ejecutar Transformación
       run: python src/transform.py
+
+  cargar:
+    needs: transformar
+    # Usamos Windows en esta tarea ya que contiene los drivers ODBC por defecto
+    runs-on: windows-latest
+    
+    steps:
+    - name: 1. Clonar el repositorio
+      uses: actions/checkout@v3
+
+    - name: 2. Configurar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: 3. Instalar dependencias
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: 4. Ejecutar Carga a Azure SQL
+      env:
+        AZURE_SQL_USER: ${{ secrets.AZURE_SQL_USER }}
+        AZURE_SQL_PASSWORD: ${{ secrets.AZURE_SQL_PASSWORD }}
+      run: python src/load.py
