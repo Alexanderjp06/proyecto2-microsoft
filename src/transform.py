@@ -63,19 +63,18 @@ def transform_data():
                 df_cleaned_fact = df_cleaned_fact[df_cleaned_fact[id_col].isin(valid_set)]
         
         # ==============================================================
-        # NUEVO: ESTANDARIZACIÓN DE FECHAS
-        # Convierte '12-Feb-21', '05/03/2022', etc. al estándar YYYY-MM-DD
+        # CORRECCIÓN: ESTANDARIZACIÓN DE FECHAS CON FORMATO MIXTO
         # ==============================================================
         if 'Sale_Date' in df_cleaned_fact.columns:
-            df_cleaned_fact['Sale_Date'] = pd.to_datetime(df_cleaned_fact['Sale_Date']).dt.strftime('%Y-%m-%d')
+            # Agregamos format='mixed' para que Pandas no se asuste con diferentes formatos
+            df_cleaned_fact['Sale_Date'] = pd.to_datetime(df_cleaned_fact['Sale_Date'], format='mixed').dt.strftime('%Y-%m-%d')
         
         # ==============================================================
-        # NUEVO: REDONDEO DE DECIMALES
+        # REDONDEO DE DECIMALES
         # ==============================================================
         if 'Quantity' in df_cleaned_fact.columns and 'Unit_Price' in df_cleaned_fact.columns:
             df_cleaned_fact['Total_Amount'] = round(df_cleaned_fact['Quantity'] * df_cleaned_fact['Unit_Price'], 2)
             
-        # Redondear otras columnas financieras si existen
         if 'Total_Price' in df_cleaned_fact.columns:
             df_cleaned_fact['Total_Price'] = round(df_cleaned_fact['Total_Price'], 2)
             
