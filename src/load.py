@@ -36,6 +36,12 @@ def load_data_to_azure():
             print(f"\nCargando {file_name} en la tabla {table_name}...")
             df = pd.read_csv(processed_path)
             
+            # ==========================================
+            # NUEVO: Convertir a fecha real para SQL
+            # ==========================================
+            if 'Sale_Date' in df.columns:
+                df['Sale_Date'] = pd.to_datetime(df['Sale_Date'])
+            
             # Subir a Azure SQL
             df.to_sql(table_name, con=engine, if_exists='replace', index=False, chunksize=10000)
             print(f" -> Tabla {table_name} cargada con éxito.")
