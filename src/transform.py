@@ -28,27 +28,16 @@ def transform_data():
             
         df = pd.read_csv(raw_path)
         
-        # Análisis detallado que tenías anteriormente
         print(f"--- Procesando y limpiando: {file_name} ---")
         print(f"  Filas iniciales: {len(df)}")
-        print(f"  Valores nulos por columna:\n{df.isnull().sum()}")
         
         df_no_dupes = df.drop_duplicates()
-        dupes_removed = len(df) - len(df_no_dupes)
-        
         df_cleaned = df_no_dupes.dropna()
-        nulls_removed = len(df_no_dupes) - len(df_cleaned)
-        
-        print(f"  Filas finales después de limpiar: {len(df_cleaned)}")
-        print(f"  > Filas eliminadas por duplicados: {dupes_removed}")
-        print(f"  > Filas eliminadas por valores nulos: {nulls_removed}")
-        print(f"  > Total de filas eliminadas: {dupes_removed + nulls_removed}")
         
         # Extraer el ID de la dimensión
         id_col = file_name.replace("_Dim.csv", "_ID")
         
         if id_col in df_cleaned.columns:
-            # Guardamos los IDs válidos para comprobarlos en la tabla de hechos
             valid_ids[id_col] = set(df_cleaned[id_col])
         
         df_cleaned.to_csv(processed_path, index=False)
@@ -64,30 +53,38 @@ def transform_data():
         df_fact = pd.read_csv(raw_fact_path)
         
         print(f"--- Procesando y limpiando: {fact_file} ---")
-        print(f"  Filas iniciales: {len(df_fact)}")
-        print(f"  Valores nulos por columna:\n{df_fact.isnull().sum()}")
         
         df_no_dupes_fact = df_fact.drop_duplicates()
-        dupes_removed = len(df_fact) - len(df_no_dupes_fact)
-        
         df_cleaned_fact = df_no_dupes_fact.dropna()
-        nulls_removed = len(df_no_dupes_fact) - len(df_cleaned_fact)
         
-        # Validar integridad referencial (elimina transacciones con IDs que no existen en dimensiones)
+        # Validar integridad referencial
         for id_col, valid_set in valid_ids.items():
             if id_col in df_cleaned_fact.columns:
                 df_cleaned_fact = df_cleaned_fact[df_cleaned_fact[id_col].isin(valid_set)]
         
-        # Transformación adicional (ej. calcular monto total si están las columnas)
+        # ==============================================================
+        # NUEVO: ESTANDARIZACIÓN DE FECHAS
+        # Convierte '12-Feb-21', '05/03/2022', etc. al estándar YYYY-MM-DD
+        # ==============================================================
+        if 'Sale_Date' in df_cleaned_fact.columns:
+            df_cleaned_fact['Sale_Date'] = pd.to_datetime(df_cleaned_fact['Sale_Date']).dt.strftime('%Y-%m-%d')
+        
+        # ==============================================================
+        # NUEVO: REDONDEO DE DECIMALES
+        # ==============================================================
         if 'Quantity' in df_cleaned_fact.columns and 'Unit_Price' in df_cleaned_fact.columns:
-            df_cleaned_fact['Total_Amount'] = df_cleaned_fact['Quantity'] * df_cleaned_fact['Unit_Price']
+            df_cleaned_fact['Total_Amount'] = round(df_cleaned_fact['Quantity'] * df_cleaned_fact['Unit_Price'], 2)
+            
+        # Redondear otras columnas financieras si existen
+        if 'Total_Price' in df_cleaned_fact.columns:
+            df_cleaned_fact['Total_Price'] = round(df_cleaned_fact['Total_Price'], 2)
+            
+        if 'Shipping_Cost' in df_cleaned_fact.columns:
+            df_cleaned_fact['Shipping_Cost'] = round(df_cleaned_fact['Shipping_Cost'], 2)
         
         # Guardar la tabla de hechos procesada
         df_cleaned_fact.to_csv(processed_fact_path, index=False)
-        print(f"  -> Hechos limpios y validados en: {processed_fact_path}")
-        print(f"  > Filas eliminadas por duplicados: {dupes_removed}")
-        print(f"  > Filas eliminadas por valores nulos: {nulls_removed}")
-        print(f"  -> Filas finales en la tabla de hechos: {len(df_cleaned_fact)}")
+        print(f"  -> Hechos limpios, fechas corregidas y validados en: {processed_fact_path}")
         
     else:
         print(f"Advertencia: El archivo {fact_file} no existe en data/raw/.")
