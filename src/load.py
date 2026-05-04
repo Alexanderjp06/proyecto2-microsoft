@@ -37,10 +37,10 @@ def load_data_to_azure():
             df = pd.read_csv(processed_path)
             
             # ==========================================
-            # NUEVO: Convertir a fecha real para SQL
+            # CORRECCIÓN: Convertir a fecha tolerando formatos mixtos
             # ==========================================
             if 'Sale_Date' in df.columns:
-                df['Sale_Date'] = pd.to_datetime(df['Sale_Date'])
+                df['Sale_Date'] = pd.to_datetime(df['Sale_Date'], format='mixed', errors='coerce')
             
             # Subir a Azure SQL
             df.to_sql(table_name, con=engine, if_exists='replace', index=False, chunksize=10000)
