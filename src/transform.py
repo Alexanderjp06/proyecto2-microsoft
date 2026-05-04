@@ -62,13 +62,18 @@ def transform_data():
             if id_col in df_cleaned_fact.columns:
                 df_cleaned_fact = df_cleaned_fact[df_cleaned_fact[id_col].isin(valid_set)]
         
-        # ==============================================================
-        # CORRECCIÓN: ESTANDARIZACIÓN DE FECHAS CON FORMATO MIXTO
+       # ==============================================================
+        # CORRECCIÓN: ESTANDARIZACIÓN DE FECHAS "MODO ESTRICTO"
         # ==============================================================
         if 'Sale_Date' in df_cleaned_fact.columns:
-            # Agregamos format='mixed' para que Pandas no se asuste con diferentes formatos
-            df_cleaned_fact['Sale_Date'] = pd.to_datetime(df_cleaned_fact['Sale_Date'], format='mixed').dt.strftime('%Y-%m-%d')
-        
+            # 1. Convertimos a fecha, forzando a que lo que no se entienda se vuelva nulo (NaT)
+            df_cleaned_fact['Sale_Date'] = pd.to_datetime(df_cleaned_fact['Sale_Date'], format='mixed', errors='coerce')
+            
+            # 2. Eliminamos las filas donde la fecha era pura basura y no se pudo convertir
+            df_cleaned_fact = df_cleaned_fact.dropna(subset=['Sale_Date'])
+            
+            # 3. Le damos el formato SQL perfecto a toda la columna
+            df_cleaned_fact['Sale_Date'] = df_cleaned_fact['Sale_Date'].dt.strftime('%Y-%m-%d')
         # ==============================================================
         # REDONDEO DE DECIMALES
         # ==============================================================
