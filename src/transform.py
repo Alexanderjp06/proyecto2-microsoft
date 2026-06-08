@@ -12,9 +12,10 @@ def transform_data():
     ]
     
     fact_file = "Sales_Fact.csv"
-    
-    # Diccionario para almacenar los IDs válidos de las dimensiones
     valid_ids = {}
+    
+    # Lista de posibles nombres de columnas de fecha en todo tu proyecto
+    date_columns = ['Sale_Date', 'Birth_Date', 'Hire_Date', 'Date']
     
     print("--- 1. Procesando Dimensiones (Maestros) ---")
     
@@ -33,6 +34,16 @@ def transform_data():
         
         df_no_dupes = df.drop_duplicates()
         df_cleaned = df_no_dupes.dropna()
+        
+        # ==============================================================
+        # NUEVA CORRECCIÓN: ESTANDARIZACIÓN DE FECHAS EN DIMENSIONES
+        # ==============================================================
+        for col in date_columns:
+            if col in df_cleaned.columns:
+                print(f"  -> Corrigiendo formato de fecha en columna: {col}")
+                df_cleaned[col] = pd.to_datetime(df_cleaned[col], format='mixed', errors='coerce')
+                df_cleaned = df_cleaned.dropna(subset=[col])
+                df_cleaned[col] = df_cleaned[col].dt.strftime('%Y-%m-%d')
         
         # Extraer el ID de la dimensión
         id_col = file_name.replace("_Dim.csv", "_ID")
@@ -62,18 +73,15 @@ def transform_data():
             if id_col in df_cleaned_fact.columns:
                 df_cleaned_fact = df_cleaned_fact[df_cleaned_fact[id_col].isin(valid_set)]
         
-       # ==============================================================
-        # CORRECCIÓN: ESTANDARIZACIÓN DE FECHAS "MODO ESTRICTO"
         # ==============================================================
-        if 'Sale_Date' in df_cleaned_fact.columns:
-            # 1. Convertimos a fecha, forzando a que lo que no se entienda se vuelva nulo (NaT)
-            df_cleaned_fact['Sale_Date'] = pd.to_datetime(df_cleaned_fact['Sale_Date'], format='mixed', errors='coerce')
-            
-            # 2. Eliminamos las filas donde la fecha era pura basura y no se pudo convertir
-            df_cleaned_fact = df_cleaned_fact.dropna(subset=['Sale_Date'])
-            
-            # 3. Le damos el formato SQL perfecto a toda la columna
-            df_cleaned_fact['Sale_Date'] = df_cleaned_fact['Sale_Date'].dt.strftime('%Y-%m-%d')
+        # ESTANDARIZACIÓN DE FECHAS EN HECHOS
+        # ==============================================================
+        for col in date_columns:
+            if col in df_cleaned_fact.columns:
+                df_cleaned_fact[col] = pd.to_datetime(df_cleaned_fact[col], format='mixed', errors='coerce')
+                df_cleaned_fact = df_cleaned_fact.dropna(subset=[col])
+                df_cleaned_fact[col] = df_cleaned_fact[col].dt.strftime('%Y-%m-%d')
+                
         # ==============================================================
         # REDONDEO DE DECIMALES
         # ==============================================================
